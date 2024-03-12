@@ -23,11 +23,20 @@ def send_to_socet(sock: socket.socket, data: str) -> None:
     sock.send(encoded_data)
 
 
-def parse_path(data: str) -> str:
+def parse_method(data: str) -> str:
     lines = data.split("\r\n")
     for line in lines:
         tokens = line.split(" ")
         if tokens[0] == "GET":
+            return "GET"
+        elif tokens[0] == "POST":
+            return "POST"
+        
+def parse_path(data: str, method: str) -> str:
+    lines = data.split("\r\n")
+    for line in lines:
+        tokens = line.split(" ")
+        if tokens[0] == method:
             return tokens[1]
         
 def parse_user_agent(data: str) -> str:
@@ -54,33 +63,54 @@ class HttpHandler:
     def get_resposne(
         self, data: str
         ) -> tuple[ResponseString, ResponseData, ContentType]:
-        path = parse_path(data)
+
+        method = parse_method(data)
+        path = parse_path(data, method)
+        
         content_type = ""
         response_data = ""
-        if path == "/":
-            return "200 OK", response_data, content_type
-        if path.startswith("/echo/"):
-            content_type = "Content-Type: text/plain"
-            response_data = path.replace("/echo/", "")
-            return "200 OK", response_data, content_type
-        if path.startswith("/user-agent"):
-            user_agent = parse_user_agent(data)
-            response_data = user_agent
-            content_type = "Content-Type: text/plain"
-            return "200 OK", response_data, content_type
-        if path.startswith("/files/") and self._file_folder_path:
-            file_name = path.replace("/files/", "")
-            file_path = os.path.join(self._file_folder_path, file_name)
-            if not os.path.exists(file_path) or not os.path.isfile(file_path):
+        
+        if method == "GET":
+            if path == "/":
+                return "200 OK", response_data, content_type
+            if path.startswith("/echo/"):
+                content_type = "Content-Type: text/plain"
+                response_data = path.replace("/echo/", "")
+                return "200 OK", response_data, content_type
+            if path.startswith("/user-agent"):
+                user_agent = parse_user_agent(data)
+                response_data = user_agent
+                content_type = "Content-Type: text/plain"
+                return "200 OK", response_data, content_type
+            if path.startswith("/files/") and self._file_folder_path:
+                file_name = path.replace("/files/", "")
+                file_path = os.path.join(self._file_folder_path, file_name)
+                
+                
+                if not os.path.exists(file_path) or not os.path.isfile(file_path):
+                    return "404 Not Found", response_data, content_type
+                
+                
+                with open(file_path, "r") as file:
+                    file_data = file.read()
+                    response_data = file_data
+                    content_type = "Content-Type: application/octet-stream"
+                return "200 OK", response_data, content_type
+            else:
                 return "404 Not Found", response_data, content_type
-            with open(file_path, "r") as file:
-                file_data = file.read()
-                response_data = file_data
-                content_type = "Content-Type: application/octet-stream"
-            return "200 OK", response_data, content_type
-        else:
-            return "404 Not Found", response_data, content_type
-          
+        elif method == "POST":
+            if path.startswith("/files/") and self._file_folder_path:
+                file_name = path.replace("/files/", "")
+                file_path = os.path.join(self._file_folder_path, file_name)
+                if os.path.exists(file_path):
+                    return "404 Not Found", response_data, content_type
+                file_content = "Test Data Here"
+                
+                with open(file_path, "w+") as file:
+                    file_data = file.write(file_content)
+                return "201 Created", response_data, content_type
+            else:
+                return "404 Not Found", response_data, content_type
 
 
 
