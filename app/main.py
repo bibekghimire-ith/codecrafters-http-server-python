@@ -5,6 +5,9 @@ import socket
 # BUFFER_SIZE = 4096
 BUFFER_SIZE = 65536
 
+ResponseString = str
+ResponseData = str
+
 def read_from_socket(sock: socket.socket) -> str:
     data = sock.recv(BUFFER_SIZE)
     # print(data.decode())
@@ -25,11 +28,13 @@ def parse_path(data: str) -> str:
             return tokens[1]
         
         
-def get_resposne_string(path: str) -> str:
+def get_resposne(path: str) -> tuple[ResponseString, ResponseData]:
     if path == "/":
-        return "200 OK"
+        return "200 OK", ""  
+    elif path.startswith("/echo/"):
+        return "200 OK", path.replace("/echo/", "")
     else:
-        return "404 Not Found"
+        return "404 Not Found", ""
 
 
 def main():
@@ -43,10 +48,12 @@ def main():
     # read_from_socket(client_socket)
     data = read_from_socket(client_socket)
     path = parse_path(data)
-    response_string = get_resposne_string(path)
+    response_string, response_data = get_resposne(path)
+    
+    response = f"HTTP/1.1 {response_string}\r\nContent-Type: text/plain\r\nContent-Length: {len(response_data)}\r\n\r\n{response_data}"
 
     # send_to_socet(client_socket, "HTTP/1.1 200 OK\r\n\r\n")
-    send_to_socet(client_socket, f"HTTP/1.1 {response_string}\r\n\r\n")
+    send_to_socet(client_socket, response)
 
 
 if __name__ == "__main__":
