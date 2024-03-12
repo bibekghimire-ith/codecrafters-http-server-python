@@ -27,12 +27,24 @@ def parse_path(data: str) -> str:
         if tokens[0] == "GET":
             return tokens[1]
         
+def parse_user_agent(data: str) -> str:
+    lines = data.split("\r\n")
+    for line in lines:
+        tokens = line.split(" ")
+        if tokens[0] == "User-Agent:":
+            return " ".join(tokens[1:])
         
-def get_resposne(path: str) -> tuple[ResponseString, ResponseData]:
+                
+def get_resposne(data: str) -> tuple[ResponseString, ResponseData]:
+    path = parse_path(data)
+    
     if path == "/":
         return "200 OK", ""  
-    elif path.startswith("/echo/"):
+    if path.startswith("/echo/"):
         return "200 OK", path.replace("/echo/", "")
+    if path.startswith("/user-agent"):
+        user_agent = parse_user_agent(data)
+        return "200 OK", user_agent
     else:
         return "404 Not Found", ""
 
@@ -47,8 +59,8 @@ def main():
     
     # read_from_socket(client_socket)
     data = read_from_socket(client_socket)
-    path = parse_path(data)
-    response_string, response_data = get_resposne(path)
+    # path = parse_path(data)
+    response_string, response_data = get_resposne(data)
     
     response = f"HTTP/1.1 {response_string}\r\nContent-Type: text/plain\r\nContent-Length: {len(response_data)}\r\n\r\n{response_data}"
 
