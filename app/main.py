@@ -1,5 +1,6 @@
 # Uncomment this to pass the first stage
 import socket
+import threading
 
 
 # BUFFER_SIZE = 4096
@@ -48,24 +49,22 @@ def get_resposne(data: str) -> tuple[ResponseString, ResponseData]:
     else:
         return "404 Not Found", ""
 
-
-def main():
-    # You can use print statements as follows for debugging, they'll be visible when running tests.
-    print("Logs from your program will appear here!")
+def handle_connection(sock: socket.socket) -> None:
+    data = read_from_socket(sock)
     
-    server_socket = socket.create_server(("localhost", 4221), reuse_port=True)
-    
-    client_socket, client_address = server_socket.accept()
-    
-    # read_from_socket(client_socket)
-    data = read_from_socket(client_socket)
-    # path = parse_path(data)
     response_string, response_data = get_resposne(data)
-    
     response = f"HTTP/1.1 {response_string}\r\nContent-Type: text/plain\r\nContent-Length: {len(response_data)}\r\n\r\n{response_data}"
 
-    # send_to_socet(client_socket, "HTTP/1.1 200 OK\r\n\r\n")
-    send_to_socet(client_socket, response)
+    send_to_socet(sock, response)
+
+
+
+def main():
+    server_socket = socket.create_server(("localhost", 4221), reuse_port=True)
+    while True:
+        client_socket, client_address = server_socket.accept()
+        
+        threading.Thread(target=lambda: handle_connection(client_socket)).start()
 
 
 if __name__ == "__main__":
