@@ -46,6 +46,10 @@ def parse_user_agent(data: str) -> str:
         if tokens[0] == "User-Agent:":
             return " ".join(tokens[1:])
         
+def parse_file_data(data):
+    lines = data.split("\r\n")
+    return lines[-1]
+        
 class HttpHandler:
     def __init__(self, file_folder_path: str) -> None:
         self._file_folder_path = file_folder_path
@@ -104,13 +108,14 @@ class HttpHandler:
                 file_path = os.path.join(self._file_folder_path, file_name)
                 if os.path.exists(file_path):
                     return "404 Not Found", response_data, content_type
-                file_content = "Test Data Here"
+                file_content = parse_file_data(data)
                 
                 with open(file_path, "w+") as file:
                     file_data = file.write(file_content)
                 return "201 Created", response_data, content_type
             else:
                 return "404 Not Found", response_data, content_type
+    
 
 
 
